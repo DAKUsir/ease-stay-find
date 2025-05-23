@@ -1,6 +1,7 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { authenticateUser, createUser } from '@/utils/userStorage';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { authenticateUser, createUser, updateUserData } from '@/utils/userStorage';
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -22,7 +23,9 @@ interface AuthContextType {
     userType: 'guest' | 'host';
   }) => Promise<void>;
   logout: () => void;
+  updateProfile: (updates: Partial<Omit<User, 'id' | 'email' | 'type'>>) => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,12 +43,20 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check for existing session on mount
     const savedUser = localStorage.getItem('stayease_user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setIsLoading(false);
+  }, []);
 
   const login = async (email: string, password: string, userType: 'guest' | 'host') => {
+    setIsLoading(true);
     try {
       const authenticatedUser = await authenticateUser(email, password);
       
@@ -65,8 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(userSession);
       localStorage.setItem('stayease_user', JSON.stringify(userSession));
+      toast.success("Successfully logged in!");
     } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Login failed');
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -77,6 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string;
     userType: 'guest' | 'host';
   }) => {
+    setIsLoading(true);
     try {
       const newUser = await createUser({
         firstName: userData.firstName,
@@ -98,14 +114,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(userSession);
       localStorage.setItem('stayease_user', JSON.stringify(userSession));
+      toast.success("Account created successfully!");
     } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Signup failed');
       throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (updates: Partial<Omit<User, 'id' | 'email' | 'type'>>) => {
+    if (!user) throw new Error('No user logged in');
+    
+    setIsLoading(true);
+    try {
+      const updatedUser = await updateUserData(user.id, updates);
+      
+      const updatedSession = {
+        ...user,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        avatar: updatedUser.avatar
+      };
+      
+      setUser(updatedSession);
+      localStorage.setItem('stayease_user', JSON.stringify(updatedSession));
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Profile update failed');
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('stayease_user');
+    toast.success("You've been logged out");
   };
 
   const value = {
@@ -113,7 +159,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     signup,
     logout,
+    updateProfile,
     isAuthenticated: !!user,
+    isLoading
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
