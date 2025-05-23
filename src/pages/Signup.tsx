@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,11 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -22,15 +26,42 @@ const Signup = () => {
     agreeToTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent, userType: string) => {
+  const handleSubmit = async (e: React.FormEvent, userType: "guest" | "host") => {
     e.preventDefault();
+    
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match");
+      toast({
+        title: "Password mismatch",
+        description: "Passwords don't match. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
-    console.log("Signup attempt:", { ...formData, userType });
-    // Here you would implement actual registration
-    navigate("/dashboard");
+
+    setIsLoading(true);
+    
+    try {
+      await signup({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        userType,
+      });
+      toast({
+        title: "Welcome to StayEase!",
+        description: "Your account has been created successfully.",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      toast({
+        title: "Signup failed",
+        description: "Please try again with different credentials.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,9 +222,9 @@ const Signup = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-blue-600 hover:bg-blue-700"
-                    disabled={!formData.agreeToTerms}
+                    disabled={!formData.agreeToTerms || isLoading}
                   >
-                    Create Guest Account
+                    {isLoading ? "Creating Account..." : "Create Guest Account"}
                   </Button>
                 </form>
               </TabsContent>
@@ -318,9 +349,9 @@ const Signup = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-red-500 hover:bg-red-600"
-                    disabled={!formData.agreeToTerms}
+                    disabled={!formData.agreeToTerms || isLoading}
                   >
-                    Create Host Account
+                    {isLoading ? "Creating Account..." : "Create Host Account"}
                   </Button>
                 </form>
               </TabsContent>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,20 +6,40 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent, userType: string) => {
+  const handleSubmit = async (e: React.FormEvent, userType: "guest" | "host") => {
     e.preventDefault();
-    console.log("Login attempt:", { ...formData, userType });
-    // Here you would implement actual authentication
-    navigate("/dashboard");
+    setIsLoading(true);
+    
+    try {
+      await login(formData.email, formData.password, userType);
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully logged in.",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,8 +122,12 @@ const Login = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                    Sign in as Guest
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing in..." : "Sign in as Guest"}
                   </Button>
                 </form>
               </TabsContent>
@@ -152,8 +175,12 @@ const Login = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full bg-red-500 hover:bg-red-600">
-                    Sign in as Host
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-red-500 hover:bg-red-600"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing in..." : "Sign in as Host"}
                   </Button>
                 </form>
               </TabsContent>
