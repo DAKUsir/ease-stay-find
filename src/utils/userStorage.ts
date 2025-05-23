@@ -15,6 +15,7 @@ interface UserData {
 
 // Simulate async operations with localStorage since we can't modify JSON files directly in frontend
 const STORAGE_KEY = 'stayease_users_db';
+const HISTORY_KEY = 'stayease_users_history';
 
 export const initializeUserDatabase = (): UserData => {
   const existing = localStorage.getItem(STORAGE_KEY);
@@ -50,6 +51,35 @@ export const initializeUserDatabase = (): UserData => {
   return initialData;
 };
 
+// Initialize history storage
+const initializeHistoryStorage = (): UserData[] => {
+  const existing = localStorage.getItem(HISTORY_KEY);
+  if (existing) {
+    return JSON.parse(existing);
+  }
+  
+  // Initialize with empty history
+  const initialHistory: UserData[] = [];
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(initialHistory));
+  return initialHistory;
+};
+
+// Save current user data to history
+const saveToHistory = (data: UserData) => {
+  const history = initializeHistoryStorage();
+  
+  // Create a timestamp for this snapshot
+  const snapshot = {
+    timestamp: new Date().toISOString(),
+    data: JSON.parse(JSON.stringify(data)) // Deep clone to avoid reference issues
+  };
+  
+  history.push(snapshot);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  
+  console.log('User data saved to history:', snapshot.timestamp);
+};
+
 export const findUserByEmail = async (email: string): Promise<User | null> => {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 500));
@@ -77,6 +107,9 @@ export const createUser = async (userData: Omit<User, 'id'>): Promise<User> => {
   
   data.users.push(newUser);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  
+  // Save to history after modification
+  saveToHistory(data);
   
   // Log current users for debugging
   console.log('Users after creation:', JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').users);
@@ -122,5 +155,27 @@ export const updateUserData = async (userId: string, updates: Partial<Omit<User,
   };
   
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  
+  // Save to history after modification
+  saveToHistory(data);
+  
   return data.users[userIndex];
+};
+
+// Get user history snapshots
+export const getUserHistory = async (): Promise<any[]> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
+  const history = initializeHistoryStorage();
+  return history;
+};
+
+// Clear history (optional utility function)
+export const clearUserHistory = async (): Promise<void> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  localStorage.setItem(HISTORY_KEY, JSON.stringify([]));
+  console.log('User history cleared');
 };
