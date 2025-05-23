@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +31,7 @@ export const SearchBar = () => {
                 placeholder="Search destinations"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="border-0 p-0 text-sm placeholder:text-gray-400 focus-visible:ring-0"
+                className="border-0 p-0 text-sm placeholder:text-gray-400 focus-visible:ring-0 text-black"
               />
             </div>
           </div>
@@ -101,14 +100,14 @@ export const SearchBar = () => {
           <div className="flex items-center space-x-2">
             <Users size={16} className="text-gray-400" />
             <div>
-              <label className="text-xs font-medium text-gray-900 block">Who</label>
+              <label className="text-xs font-medium text-gray-900 block">Count</label>
               <Input
                 type="number"
                 min="1"
                 max="16"
                 value={guests}
                 onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
-                className="border-0 p-0 text-sm w-20 focus-visible:ring-0"
+                className="border-0 p-0 text-sm w-20 focus-visible:ring-0 text-black"
               />
             </div>
           </div>
